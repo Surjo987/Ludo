@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Snakes &amp; Ladders</title>
+<style>
+:root{--bg:#f3ecd9;--ink:#2a2118;--card:#fffaf0;--line:#d9ccaa;--accent:#2f7d5b;--muted:#7a6c55;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1d1a14;--ink:#f1e8d3;--card:#2b261c;--line:#4a4130;--accent:#58b88c;--muted:#b3a78c}}
+:root[data-theme="dark"]{--bg:#1d1a14;--ink:#f1e8d3;--card:#2b261c;--line:#4a4130;--accent:#58b88c;--muted:#b3a78c}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Trebuchet MS","Segoe UI",system-ui,sans-serif;min-height:100vh;display:flex;justify-content:center}
+.app{width:100%;max-width:480px;padding:12px;display:flex;flex-direction:column;gap:10px}
+h1{margin:4px 0 0;font-size:22px;text-align:center;font-weight:800;letter-spacing:.5px}
+.card{background:var(--card);border:2px solid var(--line);border-radius:16px;padding:14px}
+.hide{display:none!important}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+.opt{flex:1;min-width:60px;padding:12px;border-radius:12px;border:2px solid var(--line);background:transparent;color:var(--ink);font:inherit;font-weight:700;cursor:pointer}
+.opt.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.big{width:100%;padding:14px;border:0;border-radius:14px;background:var(--accent);color:#fff;font:inherit;font-size:18px;font-weight:800;cursor:pointer;box-shadow:0 4px 0 rgba(0,0,0,.25)}
+.big:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,.25)}
+.big:disabled{opacity:.5}
+.players{display:flex;gap:6px}
+.chip{flex:1;display:flex;align-items:center;gap:6px;padding:6px 8px;border-radius:12px;border:2px solid var(--line);background:var(--card);font-size:13px;font-weight:700;min-width:0}
+.chip.act{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
+.chip i{width:24px;height:24px;border-radius:50%;flex:none;border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;font-size:13px;font-style:normal;line-height:1}
+.chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip b{margin-left:auto}
+.boardwrap{position:relative;width:100%;aspect-ratio:1;border-radius:12px;overflow:hidden;border:4px solid var(--bd);background:var(--bgi);box-shadow:0 6px 0 rgba(0,0,0,.2)}
+.grid{position:absolute;inset:0;display:grid;grid-template-columns:repeat(10,1fr);grid-template-rows:repeat(10,1fr)}
+.c{font-size:clamp(7px,2.2vw,11px);font-weight:700;color:var(--tx);padding:2px 3px}
+.c.a{background:var(--ca)}.c.b{background:var(--cb)}.c.f{background:var(--cf);font-size:clamp(9px,3vw,14px)}
+svg.ov,.toks{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.tok{position:absolute;width:6.4%;aspect-ratio:1;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:clamp(10px,3.4vw,17px);line-height:1;border:2.5px solid #fff;box-shadow:0 2px 4px rgba(0,0,0,.5);transform:translate(-50%,-50%);transition:left .22s ease,top .22s ease}
+.tok.slow{transition:left .9s ease-in-out,top .9s ease-in-out}
+.tok.act{animation:hop .5s infinite alternate}
+@keyframes hop{to{transform:translate(-50%,-62%)}}
+.ctl{display:flex;align-items:center;gap:12px}
+.die{width:64px;height:64px;flex:none;border-radius:14px;background:#fff;border:2px solid #333;display:grid;grid-template:repeat(3,1fr)/repeat(3,1fr);padding:8px;box-shadow:0 4px 0 rgba(0,0,0,.25)}
+.die.roll{animation:shake .15s infinite}
+@keyframes shake{25%{transform:rotate(-12deg)}75%{transform:rotate(12deg)}}
+.die u{border-radius:50%;margin:2px}.die u.p{background:#222}
+.msg{flex:1;font-size:14px;line-height:1.3;min-height:36px;display:flex;align-items:center}
+.top{display:flex;justify-content:space-between;align-items:center}
+.ghost{background:none;border:2px solid var(--line);color:var(--ink);border-radius:10px;padding:4px 10px;font:inherit;cursor:pointer}
+.over{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:20px;z-index:5}
+.over .card{text-align:center;max-width:320px;width:100%}
+.over h2{font-size:28px;margin:4px 0 10px}
+.lbl{font-weight:700;font-size:14px;color:var(--muted);margin-top:6px}
+.pr{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:8px 0 12px}
+.pr input{flex:1 1 100%;min-width:0;padding:9px 10px;border-radius:10px;border:2px solid var(--line);background:var(--bg);color:var(--ink);font:inherit}
+.pr input:disabled{opacity:.6}
+.sw{width:26px;height:26px;border-radius:50%;border:3px solid transparent;cursor:pointer;padding:0}
+.sw.on{border-color:var(--ink)}
+.sw:focus-visible,.opt:focus-visible,.big:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.tok.jungle{border-radius:50% 8% 50% 8%}.tok.ice{border-radius:28%}.tok.space{box-shadow:0 0 8px 2px rgba(170,140,255,.8),0 0 0 1px #fff}
+.tok.sh{box-shadow:0 0 0 3px #4dd4ff,0 0 12px 5px rgba(77,212,255,.85)}
+.lt{transition:transform .22s ease;cursor:pointer}.lt text{pointer-events:none}.lt.mv circle{stroke:#ffd43b;stroke-width:.2;animation:pl .45s infinite alternate}@keyframes pl{to{stroke-width:.05}}
+#lsvg{position:absolute;inset:0;width:100%;height:100%}
+.dc{animation:tw 3s ease-in-out infinite alternate}
+@keyframes tw{from{opacity:.55}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){.tok.act,.die.roll,.dc{animation:none}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top"><button class="ghost" id="mus" aria-label="Toggle music">🎶</button><h1>Board Games</h1><button class="ghost" id="snd" aria-label="Toggle sound">🔊</button></div>
+
+  <div class="row" id="tabs"><button class="opt on" data-t="snl">🐍 Snakes &amp; Ladders</button><button class="opt" data-t="ludo">🎲 Ludo</button></div>
+  <div id="snl" style="display:flex;flex-direction:column;gap:10px">
+  <div id="setup" class="card">
+    <div class="lbl">Players</div>
+    <div class="row" id="np"></div>
+    <div class="lbl">Mode</div>
+    <div class="row" id="md"></div>
+    <div class="lbl">Map theme</div>
+    <div class="row" id="th"></div>
+    <div class="lbl">Names and coin colours</div>
+    <div id="pn"></div>
+    <p style="font-size:13px;color:var(--muted);margin:8px 0 14px">Roll the dice and race to square 100. You need the exact number to finish. A six gives you another roll. Land on 🛡️ squares (like 58) to get a shield that blocks the next snake, or on ⚡ squares for a bonus roll.</p>
+    <button class="big" id="start">Start game</button>
+  </div>
+
+  <div id="game" class="hide" style="display:flex;flex-direction:column;gap:10px">
+    <div class="players" id="pl"></div>
+    <div class="boardwrap" id="bw"><div class="grid" id="grid"></div><svg class="ov" id="ov" viewBox="0 0 100 100"></svg><div class="toks" id="toks"></div></div>
+    <div class="card ctl">
+      <div class="die" id="die"></div>
+      <div class="msg" id="msg"></div>
+    </div>
+    <button class="big" id="roll">Roll dice</button>
+    <button class="ghost" id="quit">New game</button>
+  </div>
+</div>
+<div id="ludo" class="hide" style="display:flex;flex-direction:column;gap:10px">
+ <div id="lsetup" class="card">
+  <div class="lbl">Players</div><div class="row" id="lnp"></div>
+  <div class="lbl">Mode</div><div class="row" id="lmd"></div>
+  <div class="lbl">Theme</div><div class="row" id="lth"></div>
+  <div class="lbl">Names and coin colours</div><div id="lpn"></div>
+  <p style="font-size:13px;color:var(--muted);margin:8px 0 14px">Roll a 6 to bring a coin out. Land on an opponent to send them home (not on ★ or start squares). A six, a capture or reaching home gives another roll. Get all 4 coins home first. You need the exact roll to finish.</p>
+  <button class="big" id="lstart">Start Ludo</button>
+ </div>
+ <div id="lgame" class="hide" style="display:flex;flex-direction:column;gap:10px">
+  <div class="players" id="lpl"></div>
+  <div class="boardwrap" id="lbw"><svg id="lsvg" viewBox="0 0 15 15"></svg></div>
+  <div class="card ctl"><div class="die" id="ldie"></div><div class="msg" id="lmsg"></div></div>
+  <button class="big" id="lroll">Roll dice</button>
+  <button class="ghost" id="lquit">New game</button>
+ </div>
+ <div class="over hide" id="lwin"><div class="card"><div style="font-size:48px">🏆</div><h2 id="lwt"></h2><p style="margin:0 0 14px">Would you like to play again?</p><div class="row"><button class="opt" id="lno">No</button><button class="opt on" id="lyes" style="flex:2">Yes, play again</button></div></div></div>
+</div>
+</div>
+<div class="over hide" id="win"><div class="card"><div style="font-size:48px">🏆</div><h2 id="wt"></h2><p style="margin:0 0 14px">Would you like to play again?</p><div class="row"><button class="opt" id="no">No</button><button class="opt on" id="yes" style="flex:2">Yes, play again</button></div></div></div>
+
+<script>
+const SNAKES={16:6,47:26,49:11,56:53,62:19,64:60,87:24,93:73,95:75,98:78};
+const LADDERS={1:38,4:14,9:31,21:42,28:84,36:44,51:67,71:91,80:100};
+const JUMPS=Object.assign({},SNAKES,LADDERS);
+const PALETTE=["#e63946","#2a6fdb","#f4a300","#8e44ad","#2f9e44","#e64980","#12b5b0","#343a40"];
+const POWER={58:"shield",33:"shield",83:"shield",12:"bonus",40:"bonus",69:"bonus"};
+const THEMES={
+jungle:{name:"Jungle",icon:"🌴",a:"rgba(214,240,170,.55)",b:"rgba(110,185,80,.5)",f:"rgba(255,224,138,.9)",bg:"radial-gradient(circle at 20% 15%,#6fb844 0,transparent 45%),radial-gradient(circle at 85% 80%,#2a7a2e 0,transparent 50%),linear-gradient(#3f8f3a,#1f5e2a)",dec:["🌴","🌿","🦜","🐒","🌺","🍃","🦋","🐆"],bd:"#5b3a1e",tx:"#2d4a1c",lad:"#8a5a2b",sn:["#e8590c","#f2c200","#d6336c","#1c7ed6","#862e9c"],fin:"🍌",coins:["🐒","🦜","🐆","🦋"]},
+ice:{name:"Antarctica",icon:"🐧",a:"rgba(255,255,255,.62)",b:"rgba(170,215,245,.55)",f:"rgba(255,255,255,.92)",bg:"radial-gradient(circle at 80% 8%,#fff 0,transparent 40%),linear-gradient(#bfe6ff,#7cc0ea 60%,#e9f7ff)",dec:["❄️","🐧","🧊","⛄","🐋","🦭","🏔️","🐻‍❄️"],bd:"#4a7fa8",tx:"#1d4766",lad:"#7b4a1f",sn:["#1864ab","#0c8599","#5f3dc4","#364fc7","#2b8a3e"],fin:"🐧",coins:["🐧","🦭","🐻‍❄️","🐋"]},
+space:{name:"Space",icon:"🚀",a:"rgba(120,90,220,.26)",b:"rgba(40,30,100,.35)",f:"rgba(255,215,90,.5)",bg:"radial-gradient(2px 2px at 12% 20%,#fff,transparent),radial-gradient(1.5px 1.5px at 33% 70%,#fff,transparent),radial-gradient(2px 2px at 58% 35%,#fff,transparent),radial-gradient(1.5px 1.5px at 80% 15%,#fff,transparent),radial-gradient(2px 2px at 90% 85%,#fff,transparent),radial-gradient(1.5px 1.5px at 45% 92%,#fff,transparent),radial-gradient(1.5px 1.5px at 6% 62%,#fff,transparent),radial-gradient(circle at 70% 30%,#5b2f9e 0,transparent 55%),radial-gradient(circle at 15% 85%,#2a4fa8 0,transparent 45%),linear-gradient(#0d0a24,#1b1245)",dec:["⭐","🪐","🌙","☄️","🛸","👽","🌟","🌍"],bd:"#14102e",tx:"#e4dcff",lad:"#ffd43b",sn:["#ff6b9d","#4dd4ff","#9be564","#ff9f43","#c77dff"],fin:"🌟",coins:["🚀","🛸","👽","🧑‍🚀"]}
+};
+const $=id=>document.getElementById(id);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const esc=s=>s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+let cfg={n:2,cpu:true,theme:"jungle",names:[],cols:["#e63946","#2a6fdb","#f4a300","#8e44ad"]},players=[],turn=0,busy=false,over=false,sound=true,die=1,toks=[];
+
+function xy(n){const r=Math.floor((n-1)/10),i=(n-1)%10,c=r%2?9-i:i;return[c*10+5,(9-r)*10+5]}
+
+// ---- audio
+let ac;
+function beep(f,d=.08,t="sine"){if(!sound)return;try{ac=ac||new(window.AudioContext||window.webkitAudioContext)();const o=ac.createOscillator(),g=ac.createGain();o.type=t;o.frequency.value=f;g.gain.value=.08;o.connect(g);g.connect(ac.destination);o.start();g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+d);o.stop(ac.currentTime+d)}catch(e){}}
+$("snd").onclick=()=>{sound=!sound;$("snd").textContent=sound?"🔊":"🔇"};
+
+// ---- soothing background music (generated live: slow pad chords + soft pentatonic bells)
+let music=true,mTimer=null,mGain=null,mStep=0;
+const CH=[[261.63,329.63,392],[220,261.63,329.63],[174.61,220,261.63],[196,246.94,293.66]];
+const PENT=[523.25,587.33,659.25,783.99,880];
+function mNote(f,t,d,type,vol){const o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.value=f;g.gain.setValueAtTime(0.0001,t);g.gain.linearRampToValueAtTime(vol,t+d*.3);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g);g.connect(mGain);o.start(t);o.stop(t+d+.05)}
+function mBar(){if(!music||!ac)return;const t=ac.currentTime+.05,ch=CH[mStep++%4];ch.forEach(f=>mNote(f,t,6,"sine",.045));mNote(ch[0]/2,t,6,"sine",.06);for(let i=0;i<4;i++)if(Math.random()<.75)mNote(PENT[Math.floor(Math.random()*5)],t+i*1.5+Math.random()*.25,2.6,"triangle",.022)}
+function startMusic(){if(!music)return;try{ac=ac||new(window.AudioContext||window.webkitAudioContext)();ac.resume();if(!mGain){mGain=ac.createGain();mGain.gain.value=.8;mGain.connect(ac.destination)}if(mTimer)return;mBar();mTimer=setInterval(mBar,6000)}catch(e){}}
+function stopMusic(){clearInterval(mTimer);mTimer=null}
+$("mus").onclick=()=>{music=!music;$("mus").textContent=music?"🎶":"🔕";music?startMusic():stopMusic()};
+document.addEventListener("pointerdown",startMusic,{once:true});
+document.addEventListener("visibilitychange",()=>{if(!ac)return;document.hidden?ac.suspend():ac.resume()});
+
+// ---- setup
+function opts(el,list,sel,cb){el.innerHTML="";list.forEach(([l,v])=>{const b=document.createElement("button");b.className="opt"+(v===sel?" on":"");b.textContent=l;b.onclick=()=>{cb(v);build()};el.appendChild(b)})}
+function build(){
+  opts($("np"),[["2",2],["3",3],["4",4]],cfg.n,v=>cfg.n=v);
+  opts($("md"),[["With computer",true],["With friends",false]],cfg.cpu,v=>cfg.cpu=v);
+  opts($("th"),Object.entries(THEMES).map(([k,t])=>[t.icon+" "+t.name,k]),cfg.theme,v=>cfg.theme=v);
+  $("pn").innerHTML=Array.from({length:cfg.n},(_,i)=>{const cpu=cfg.cpu&&i>0;return `<div class="pr"><input maxlength="12" data-i="${i}" ${cpu?"disabled":""} value="${cpu?"":esc(cfg.names[i]||"")}" placeholder="${cpu?"Computer":"Player "+(i+1)+" name"}" aria-label="Player ${i+1} name">${PALETTE.map(c=>`<button class="sw${cfg.cols[i]===c?" on":""}" style="background:${c}" data-i="${i}" data-c="${c}" aria-label="Coin colour"></button>`).join("")}</div>`}).join("");
+}
+$("pn").addEventListener("input",e=>{if(e.target.tagName==="INPUT")cfg.names[+e.target.dataset.i]=e.target.value});
+$("pn").addEventListener("click",e=>{const b=e.target.closest(".sw");if(!b)return;const i=+b.dataset.i,c=b.dataset.c,j=cfg.cols.indexOf(c);if(j>=0&&j!==i)cfg.cols[j]=cfg.cols[i];cfg.cols[i]=c;build()});
+build();
+
+function dieFace(v,id="die"){const P={1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]}[v];$(id).innerHTML=Array.from({length:9},(_,i)=>`<u class="${P.includes(i)?"p":""}"></u>`).join("")}
+
+function drawBoard(){
+  const T=THEMES[cfg.theme],st=$("bw").style;[["--ca",T.a],["--cb",T.b],["--cf",T.f],["--bd",T.bd],["--tx",T.tx],["--bgi",T.bg]].forEach(([k,v])=>st.setProperty(k,v));
+  let h="";
+  for(let r=9;r>=0;r--)for(let c=0;c<10;c++){const n=r*10+(r%2?10-c:c+1);h+=`<div class="c ${n===100?"f":(r+c)%2?"a":"b"}">${n===100?T.fin:n}</div>`}
+  $("grid").innerHTML=h;
+  let s="";const used=new Set(Object.entries(JUMPS).flat().map(Number));Object.keys(POWER).forEach(k=>used.add(+k));
+  for(const [n,k] of Object.entries(POWER)){const[x,y]=xy(+n);s+=`<circle cx="${x+1.2}" cy="${y+2}" r="3.5" fill="${k==="shield"?"rgba(77,212,255,.9)":"rgba(255,214,64,.95)"}" stroke="#fff" stroke-width=".5"/><text x="${x+1.2}" y="${y+3.5}" font-size="4.2" text-anchor="middle">${k==="shield"?"🛡️":"⚡"}</text>`}
+  for(let n=2;n<100;n++){if(used.has(n)||(n*11)%6!==1)continue;const[x,y]=xy(n);s+=`<text class="dc" x="${x+1.6}" y="${y+3.2}" font-size="5.2" text-anchor="middle" style="animation-delay:${(n%5)*.6}s">${T.dec[(n*3)%T.dec.length]}</text>`}
+  for(const [b,t] of Object.entries(LADDERS)){
+    const[a1,a2]=xy(+b),[b1,b2]=xy(t),dx=b1-a1,dy=b2-a2,L=Math.hypot(dx,dy),px=-dy/L*1.2,py=dx/L*1.2;
+    s+=`<g stroke="${T.lad}" stroke-linecap="round"><line x1="${a1+px}" y1="${a2+py}" x2="${b1+px}" y2="${b2+py}" stroke-width=".8"/><line x1="${a1-px}" y1="${a2-py}" x2="${b1-px}" y2="${b2-py}" stroke-width=".8"/>`;
+    for(let d=3;d<L-1;d+=3.4){const x=a1+dx*d/L,y=a2+dy*d/L;s+=`<line x1="${x+px}" y1="${y+py}" x2="${x-px}" y2="${y-py}" stroke-width=".6"/>`}
+    s+="</g>";
+  }
+  let k=0;
+  for(const [h2,t] of Object.entries(SNAKES)){
+    const[a1,a2]=xy(+h2),[b1,b2]=xy(t),dx=b2-a2,dy=b1-a1,L=Math.hypot(dx,dy),col=T.sn[k++%5];
+    const nx=-(b2-a2)/L,ny=(b1-a1)/L,q=L*.2;
+    const c1=[a1+(b1-a1)*.3+nx*q,a2+(b2-a2)*.3+ny*q],c2=[a1+(b1-a1)*.7-nx*q,a2+(b2-a2)*.7-ny*q];
+    const d=`M${a1} ${a2}C${c1[0]} ${c1[1]} ${c2[0]} ${c2[1]} ${b1} ${b2}`;
+    s+=`<path d="${d}" fill="none" stroke="rgba(0,0,0,.25)" stroke-width="2.6" stroke-linecap="round" transform="translate(.3 .4)"/><path d="${d}" fill="none" stroke="${col}" stroke-width="2.3" stroke-linecap="round"/><path d="${d}" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width=".8" stroke-dasharray="1.2 1.8" stroke-linecap="round"/><circle cx="${a1}" cy="${a2}" r="2" fill="${col}"/><circle cx="${a1-.7}" cy="${a2-.5}" r=".5" fill="#fff"/><circle cx="${a1+.7}" cy="${a2-.5}" r=".5" fill="#fff"/><circle cx="${a1-.7}" cy="${a2-.5}" r=".2" fill="#000"/><circle cx="${a1+.7}" cy="${a2-.5}" r=".2" fill="#000"/>`;
+  }
+  $("ov").innerHTML=s;
+}
+
+function start(){
+  players=Array.from({length:cfg.n},(_,i)=>{const cpu=cfg.cpu&&i>0;return{name:cpu?"CPU"+(cfg.n>2?" "+i:""):((cfg.names[i]||"").trim()||(cfg.cpu?"You":"Player "+(i+1))),color:cfg.cols[i],pos:0,cpu}});
+  turn=0;busy=false;over=false;die=1;
+  $("setup").classList.add("hide");$("game").classList.remove("hide");$("win").classList.add("hide");
+  drawBoard();dieFace(1);
+  $("toks").innerHTML="";toks=players.map((p,i)=>{const t=document.createElement("div");t.className="tok "+cfg.theme;t.textContent=THEMES[cfg.theme].coins[i];t.style.background=p.color;$("toks").appendChild(t);return t});
+  $("pl").innerHTML=players.map((p,i)=>`<div class="chip" id="chip${i}"><i style="background:${p.color}">${THEMES[cfg.theme].coins[i]}</i><span>${esc(p.name)}</span><b id="pp${i}">0</b></div>`).join("");
+  render();say(`${players[0].name}: roll the dice!`);next();
+}
+const OFF=[[-2,-2],[2,-2],[-2,2],[2,2]];
+function render(){
+  players.forEach((p,i)=>{const[x,y]=xy(Math.max(p.pos,1));toks[i].style.left=(x+OFF[i][0])+"%";toks[i].style.top=(y+OFF[i][1])+"%";toks[i].classList.toggle("act",i===turn&&!over);$("pp"+i).textContent=(p.shield?"🛡️ ":"")+p.pos;toks[i].classList.toggle("sh",!!p.shield);$("chip"+i).classList.toggle("act",i===turn&&!over)});
+  const cpu=players[turn].cpu;$("roll").disabled=busy||over||cpu;$("roll").textContent=cpu?players[turn].name+" is playing…":"Roll dice";
+}
+function say(t){$("msg").textContent=t}
+
+async function rollDice(){
+  $("die").classList.add("roll");
+  for(let i=0;i<7;i++){dieFace(1+Math.floor(Math.random()*6));beep(300+i*40,.05,"square");await sleep(80)}
+  $("die").classList.remove("roll");
+  const v=1+Math.floor(Math.random()*6);dieFace(v);return v;
+}
+
+async function play(){
+  if(busy||over)return;busy=true;render();
+  const p=players[turn];const roll=await rollDice();
+  let moved=true,bonus=false;
+  if(p.pos+roll>100){say(`${p.name} rolled ${roll}. Needs exactly ${100-p.pos} to finish.`);moved=false;await sleep(900)}
+  else{
+    say(`${p.name} rolled ${roll}.`);await sleep(250);
+    for(let i=0;i<roll;i++){p.pos++;render();beep(520+p.pos%10*20,.06);await sleep(230)}
+    const pu=POWER[p.pos];
+    if(pu==="shield"&&!p.shield){p.shield=true;say(`🛡️ ${p.name} got a shield! It blocks the next snake.`);beep(880,.35,"triangle");render();await sleep(1200)}
+    else if(pu==="bonus"){bonus=true;say(`⚡ ${p.name} found a bonus roll!`);beep(990,.3,"triangle");await sleep(1100)}
+    let j=JUMPS[p.pos];
+    if(j&&j<p.pos&&p.shield){p.shield=false;say(`🛡️ The shield saved ${p.name} from the snake!`);beep(900,.4,"triangle");render();await sleep(1400);j=0}
+    if(j){
+      const snake=j<p.pos;say(snake?`🐍 Snake! ${p.name} slides down to ${j}.`:`🪜 Ladder! ${p.name} climbs up to ${j}.`);
+      await sleep(350);toks[players.indexOf(p)].classList.add("slow");
+      beep(snake?200:700,.5,snake?"sawtooth":"triangle");p.pos=j;render();await sleep(1000);
+      toks[players.indexOf(p)].classList.remove("slow");
+    }
+  }
+  if(p.pos===100){over=true;busy=false;render();beep(880,.4);setTimeout(()=>beep(1175,.5),250);
+    $("wt").textContent=p.name+(p.name==="You"?" win!":" wins!");$("win").classList.remove("hide");return}
+  if((roll===6||bonus)&&moved){say(`${p.name} ${bonus?"gets a bonus roll":"rolled a six and plays again"}!`);await sleep(600)}
+  else turn=(turn+1)%players.length;
+  busy=false;render();
+  if(!((roll===6||bonus)&&moved))say(`${players[turn].name}, your turn.`);
+  next();
+}
+function next(){if(!over&&players[turn].cpu)setTimeout(play,900)}
+
+$("roll").onclick=()=>{if(!players[turn].cpu)play()};
+$("start").onclick=start;
+$("yes").onclick=start;
+$("no").onclick=()=>{$("win").classList.add("hide");$("game").classList.add("hide");$("setup").classList.remove("hide")};
+$("quit").onclick=()=>{over=true;$("game").classList.add("hide");$("setup").classList.remove("hide")};
+
+// ================= LUDO =================
+document.querySelectorAll("#tabs .opt").forEach(b=>b.onclick=()=>{document.querySelectorAll("#tabs .opt").forEach(x=>x.classList.toggle("on",x===b));$("snl").classList.toggle("hide",b.dataset.t!=="snl");$("ludo").classList.toggle("hide",b.dataset.t!=="ludo")});
+const LP=[[6,1],[6,2],[6,3],[6,4],[6,5],[5,6],[4,6],[3,6],[2,6],[1,6],[0,6],[0,7],[0,8],[1,8],[2,8],[3,8],[4,8],[5,8],[6,9],[6,10],[6,11],[6,12],[6,13],[6,14],[7,14],[8,14],[8,13],[8,12],[8,11],[8,10],[8,9],[9,8],[10,8],[11,8],[12,8],[13,8],[14,8],[14,7],[14,6],[13,6],[12,6],[11,6],[10,6],[9,6],[8,5],[8,4],[8,3],[8,2],[8,1],[8,0],[7,0],[6,0]];
+const HOME=[[[7,1],[7,2],[7,3],[7,4],[7,5]],[[1,7],[2,7],[3,7],[4,7],[5,7]],[[7,13],[7,12],[7,11],[7,10],[7,9]],[[13,7],[12,7],[11,7],[10,7],[9,7]]];
+const SAFE=[0,8,13,21,26,34,39,47],YARD=[[0,0],[0,9],[9,9],[9,0]];
+const LT={
+ st:{name:"Stranger Things",icon:"🔦",bgi:"radial-gradient(circle at 50% 50%,#4a0a1a,#0a0206)",cell:"#2b1219",ln:"#ff4d6d",bd:"#7f1022",seats:["#e11d48","#f59e0b","#38bdf8","#a855f7"],coins:["🔦","🚲","🧇","💡"]},
+ sq:{name:"Squid Game",icon:"🦑",bgi:"linear-gradient(135deg,#0e3b36,#2a0a1c)",cell:"#e8fff8",ln:"#0e7c70",bd:"#ed1b76",seats:["#ed1b76","#0fa595","#f4a300","#6b7280"],coins:["⭕","🔺","⬜","🦑"]},
+ mh:{name:"Money Heist",icon:"🎭",bgi:"radial-gradient(circle,#7a0b10,#160203)",cell:"#f4ebe3",ln:"#b3121a",bd:"#d71920",seats:["#d71920","#d4a017","#2b2b2b","#9aa0a6"],coins:["🎭","💰","🏦","💎"]}
+};
+let lcfg={n:2,cpu:true,theme:"st",names:[],cols:null},L=null;
+const lseats=n=>n===2?[0,2]:n===3?[0,1,2]:[0,1,2,3];
+const lmsg=t=>$("lmsg").textContent=t;
+function lbuild(){
+ opts($("lnp"),[["2",2],["3",3],["4",4]],lcfg.n,v=>{lcfg.n=v;lbuild()});
+ opts($("lmd"),[["With computer",true],["With friends",false]],lcfg.cpu,v=>{lcfg.cpu=v;lbuild()});
+ opts($("lth"),Object.entries(LT).map(([k,t])=>[t.icon+" "+t.name,k]),lcfg.theme,v=>{lcfg.theme=v;lcfg.cols=null;lbuild()});
+ const T=LT[lcfg.theme];if(!lcfg.cols)lcfg.cols=[...T.seats];const sw=[...new Set([...T.seats,...PALETTE])];
+ $("lpn").innerHTML=lseats(lcfg.n).map((s,i)=>{const cpu=lcfg.cpu&&i>0;return `<div class="pr"><div style="display:flex;gap:8px;width:100%;align-items:center"><i style="width:34px;height:34px;border-radius:50%;background:${lcfg.cols[i]};display:flex;align-items:center;justify-content:center;font-style:normal;border:2px solid #fff;flex:none">${T.coins[s]}</i><input style="flex:1 1 0" maxlength="12" data-i="${i}" ${cpu?"disabled":""} value="${cpu?"":esc(lcfg.names[i]||"")}" placeholder="${cpu?"Computer":"Player "+(i+1)+" name"}" aria-label="Player ${i+1} name"></div>${sw.map(c=>`<button class="sw${lcfg.cols[i]===c?" on":""}" style="background:${c}" data-i="${i}" data-c="${c}" aria-label="Coin colour"></button>`).join("")}`}).join("");
+}
+$("lpn").addEventListener("input",e=>{if(e.target.tagName==="INPUT")lcfg.names[+e.target.dataset.i]=e.target.value});
+$("lpn").addEventListener("click",e=>{const b=e.target.closest(".sw");if(!b)return;const i=+b.dataset.i,c=b.dataset.c,j=lcfg.cols.indexOf(c);if(j>=0&&j!==i)lcfg.cols[j]=lcfg.cols[i];lcfg.cols[i]=c;lbuild()});
+function lpos(i,t){const k=L.seat[i],p=L.tk[i][t];
+ if(!p)return[YARD[k][1]+2+t%2*2,YARD[k][0]+2+(t>>1)*2];
+ if(p<=51){const[r,c]=LP[(13*k+p-1)%52];return[c+.5,r+.5]}
+ if(p<57){const[r,c]=HOME[k][p-52];return[c+.5,r+.5]}
+ const o=(t-1.5)*.2;return k%2?[7.5+o,7.5+(k-2)*.9]:[7.5+(k-1)*.9,7.5+o]}
+function lrender(){
+ const g=L,pos=[];g.players.forEach((_,i)=>[0,1,2,3].forEach(t=>pos.push(lpos(i,t))));
+ const key=pos.map(p=>p.join());
+ g.el.forEach((e,n)=>{const i=n>>2,t=n&3,same=key.reduce((a,k,m)=>k===key[n]?a.concat(m):a,[]);let[x,y]=pos[n];
+  if(same.length>1){const q=same.indexOf(n)%4;x+=[-.2,.2,-.2,.2][q];y+=[-.2,-.2,.2,.2][q]}
+  e.style.transform=`translate(${x}px,${y}px)`;e.classList.toggle("mv",i===g.turn&&g.mv.includes(t))});
+ g.players.forEach((p,i)=>{$("lc"+i).classList.toggle("act",i===g.turn&&!g.over);$("lh"+i).textContent=g.tk[i].filter(v=>v===57).length+"/4"});
+ const cpu=g.players[g.turn].cpu;$("lroll").disabled=g.busy||g.over||cpu;$("lroll").textContent=cpu?g.players[g.turn].name+" is playing…":"Roll dice";
+}
+function lstart(){
+ const B=LT[lcfg.theme],ss=lseats(lcfg.n),T={...B,seats:B.seats.map((c,s)=>{const i=ss.indexOf(s);return i<0?c:lcfg.cols[i]})};
+ L={T,id:1,seat:ss,players:ss.map((s,i)=>{const cpu=lcfg.cpu&&i>0;return{cpu,name:cpu?"CPU"+(lcfg.n>2?" "+i:""):((lcfg.names[i]||"").trim()||(lcfg.cpu?"You":"Player "+(i+1)))}}),tk:ss.map(()=>[0,0,0,0]),turn:0,busy:false,over:false,mv:[],pick:null};
+ $("lsetup").classList.add("hide");$("lgame").classList.remove("hide");$("lwin").classList.add("hide");
+ const bw=$("lbw").style;bw.setProperty("--bd",T.bd);bw.setProperty("--bgi",T.bgi);
+ let s="";
+ YARD.forEach(([R,C],k)=>{s+=`<rect x="${C}" y="${R}" width="6" height="6" fill="${T.seats[k]}"/><rect x="${C+1}" y="${R+1}" width="4" height="4" rx=".5" fill="${T.cell}"/>`;for(let a=0;a<4;a++)s+=`<circle cx="${C+2+a%2*2}" cy="${R+2+(a>>1)*2}" r=".6" fill="${T.seats[k]}" opacity=".5"/>`});
+ LP.forEach(([r,c],i)=>{const st=i%13===0;s+=`<rect x="${c}" y="${r}" width="1" height="1" fill="${st?T.seats[i/13]:T.cell}" stroke="${T.ln}" stroke-width=".05"/>`;if(!st&&SAFE.includes(i))s+=`<text x="${c+.5}" y="${r+.74}" font-size=".7" text-anchor="middle" fill="${T.ln}">★</text>`});
+ HOME.forEach((h,k)=>h.forEach(([r,c])=>s+=`<rect x="${c}" y="${r}" width="1" height="1" fill="${T.seats[k]}" stroke="${T.ln}" stroke-width=".05"/>`));
+ ["6,6 6,9","6,6 9,6","9,6 9,9","6,9 9,9"].forEach((p,k)=>s+=`<polygon points="${p} 7.5,7.5" fill="${T.seats[k]}" stroke="#fff" stroke-width=".05"/>`);
+ ss.forEach((st,i)=>[0,1,2,3].forEach(t=>s+=`<g class="lt" data-i="${i}" data-t="${t}"><circle r=".42" fill="${T.seats[st]}" stroke="#fff" stroke-width=".09"/><text y=".2" font-size=".55" text-anchor="middle">${T.coins[st]}</text></g>`));
+ $("lsvg").innerHTML=s;L.el=[...$("lsvg").querySelectorAll(".lt")];
+ $("lpl").innerHTML=ss.map((st,i)=>`<div class="chip" id="lc${i}"><i style="background:${T.seats[st]}">${T.coins[st]}</i><span>${esc(L.players[i].name)}</span><b id="lh${i}">0/4</b></div>`).join("");
+ dieFace(1,"ldie");lmsg(`${L.players[0].name}: roll the dice!`);
+ L.el.forEach(e=>e.style.transition="none");lrender();$("lsvg").getBoundingClientRect();L.el.forEach(e=>e.style.transition="");
+ lnext();
+}
+function lnext(){if(!L.over&&L.players[L.turn].cpu){const g=L;setTimeout(()=>{if(g===L)lplay()},900)}}
+const ls=async(g,ms)=>{await sleep(ms);return g===L&&!g.over};
+const labs=(g,i,p)=>(13*g.seat[i]+p-1)%52;
+function lcap(g,i,np){if(np<1||np>51)return false;const a=labs(g,i,np);if(SAFE.includes(a))return false;return g.players.some((_,j)=>j!==i&&g.tk[j].some(q=>q>=1&&q<=51&&labs(g,j,q)===a))}
+function lpick(g,mv,roll){const i=g.turn;let b=mv[0],bs=-1;mv.forEach(t=>{const p=g.tk[i][t],np=p?p+roll:1,sc=(np===57?100:0)+(lcap(g,i,np)?60:0)+(p===0?30:0)+p;if(sc>bs){bs=sc;b=t}});return b}
+async function lplay(){
+ const g=L;if(g.busy||g.over)return;g.busy=true;lrender();
+ const i=g.turn,me=g.players[i];
+ $("ldie").classList.add("roll");
+ for(let k=0;k<7;k++){dieFace(1+Math.floor(Math.random()*6),"ldie");beep(300+k*40,.05,"square");await sleep(80)}
+ $("ldie").classList.remove("roll");
+ const roll=1+Math.floor(Math.random()*6);dieFace(roll,"ldie");
+ if(g!==L)return;
+ const mv=[];g.tk[i].forEach((p,t)=>{if(p?p+roll<=57:roll===6)mv.push(t)});
+ let extra=roll===6;
+ if(!mv.length){lmsg(`${me.name} rolled ${roll}. No move possible.`);extra=false;if(!await ls(g,1000))return}
+ else{
+  let t=mv[0];
+  if(me.cpu)t=lpick(g,mv,roll);
+  else if(mv.length>1){lmsg(`${me.name} rolled ${roll}. Tap a glowing coin.`);g.mv=mv;lrender();t=await new Promise(r=>g.pick=r);g.mv=[];if(g!==L)return}
+  else lmsg(`${me.name} rolled ${roll}.`);
+  if(!await ls(g,300))return;
+  if(g.tk[i][t]===0){g.tk[i][t]=1;lrender();beep(520);if(!await ls(g,350))return}
+  else for(let k=0;k<roll;k++){g.tk[i][t]++;lrender();beep(500+g.tk[i][t]*5,.05);if(!await ls(g,200))return}
+  const p=g.tk[i][t];let cap=false;
+  if(p<=51){const a=labs(g,i,p);if(!SAFE.includes(a))g.players.forEach((_,j)=>{if(j!==i)g.tk[j].forEach((q,u)=>{if(q>=1&&q<=51&&labs(g,j,q)===a){g.tk[j][u]=0;cap=true}})})}
+  if(cap){lmsg(`💥 ${me.name} sent a coin back home!`);beep(160,.4,"sawtooth");lrender();extra=true;if(!await ls(g,900))return}
+  if(p===57){lmsg(`🏁 ${me.name} got a coin home!`);beep(880,.3,"triangle");extra=true;if(!await ls(g,800))return}
+ }
+ if(g.tk[i].every(v=>v===57)){g.over=true;g.busy=false;lrender();beep(880,.4);$("lwt").textContent=me.name+(me.name==="You"?" win!":" wins!");$("lwin").classList.remove("hide");return}
+ if(extra)lmsg(`${me.name} plays again!`);else g.turn=(i+1)%g.players.length;
+ g.busy=false;lrender();if(!extra)lmsg(`${g.players[g.turn].name}, your turn.`);lnext();
+}
+$("lsvg").addEventListener("click",e=>{const el=e.target.closest(".lt");if(!el||!L||!L.pick)return;const t=+el.dataset.t;if(+el.dataset.i!==L.turn||!L.mv.includes(t))return;const f=L.pick;L.pick=null;f(t)});
+$("lstart").onclick=lstart;
+$("lroll").onclick=()=>{if(L&&!L.players[L.turn].cpu)lplay()};
+$("lquit").onclick=()=>{if(L)L.over=true;$("lgame").classList.add("hide");$("lsetup").classList.remove("hide")};
+$("lyes").onclick=lstart;
+$("lno").onclick=()=>{$("lwin").classList.add("hide");$("lgame").classList.add("hide");$("lsetup").classList.remove("hide")};
+lbuild();
+</script>
+</body>
+</html>
